@@ -95,7 +95,12 @@ def setupApp() {
 			input name: "modeChangeOn",  type: "mode", title: "On when the location mode changes to:", multiple: true, required: false
 			input name: "modeChangesOff",  type: "mode", title: "Off when the location mode changes to:", multiple: true, required: false, refreshAfterSelection: true
 			if (modeChangesOff) {
-				input name: "keepOff", type: "bool", title: "Keep off while in ${modeChangesOff} mode(s)?", defaultValue: true
+				def plural = ""
+				if (modeChangesOff.size() > 1) {
+					plural = "s"
+				}
+				def showModes = modeChangesOff.replace("[]","")
+				input name: "keepOff", type: "bool", title: "Keep off while in ${showModes} mode${plural}?", defaultValue: true
 			}
 		}
 	}
