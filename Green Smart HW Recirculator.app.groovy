@@ -46,7 +46,7 @@ def setupApp() {
 
 
 	section("HW Recirculator") {
-		input name: "recircSwitch", "capability.switch", title: "Recirculator switch?", multiple: false, required: true
+		input name: "recircSwitch", type: "capability.switch", title: "Recirculator switch?", multiple: false, required: true
 		
 		input name: "recircMomentary", type: "bool", title: "Is this a momentary switch?", required: true, defaultValue: true, refreshAfterSelection: true
 		if (!recircMomentary) {
@@ -58,35 +58,35 @@ def setupApp() {
 		
 		input name: "useTargetTemp", type: "bool", title: "Use temperature control?", defaultValue: false, refreshAfterSelection: true
 		if (useTargetTemp) {
-			input name: "targetThermometer", "capability.temperatureMeasurement", title: "Use this thermometer", multiple: false, required: true
+			input name: "targetThermometer", type: "capability.temperatureMeasurement", title: "Use this thermometer", multiple: false, required: true
 			input name: "targetTemperature", type: "number", title: "Target temperature", defaultValue: 105, required: true
 		}
 		
 	}
 	section("Recirculator Activation events:") {
 	
-		input name: "motionDetected", "cability.motion", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
+		input name: "motionDetected", type: "cability.motionSensor", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
 			if (motionDetected) {
 			input name: "motionStops", type: "bool", title: "Off when motion stops?", defaultValue: true
 		}
 	
-		input name: "contactOpens", "capability.contactSensor", title: "On when any of these things open", multiple: true, required: false, refreshAfterSelection: true
+		input name: "contactOpens", type: "capability.contactSensor", title: "On when any of these things open", multiple: true, required: false, refreshAfterSelection: true
 		if (contactOpens) {
 			input name: "openCloses", type: "bool", title: "Off when they re-close?", defaultValue: false
 		}
 	
-		input name: "contactCloses", "capability.contactSensor", title: "On when any of these things close", multiple: true, required: false, refreshAfterSelection: true
+		input name: "contactCloses", type: "capability.contactSensor", title: "On when any of these things close", multiple: true, required: false, refreshAfterSelection: true
 		if (contactCloses) {
 			input name: "closedOpens", type: "bool", title: "Off when they re-open?", defaultValue: false
 		}
 	
-		input name: "switchedOn", "capability.switch", title: "On when a switch is turned on", multiple: true, required: false, refreshAfterSelection: true
+		input name: "switchedOn", type: "capability.switch", title: "On when a switch is turned on", multiple: true, required: false, refreshAfterSelection: true
 		if (switchedOn) {
 			input name: "onSwitchedOff", type: "bool", title: "Off when turned off?", defaultValue: false
 		}
 	
-		input name: "modeChangeOn", location.modes, title: "On when the location mode changes to:", multiple: true, required: false
-		input name: "modeChangesOff", location.modes, title: "Off when the location mode changes to:", multiple: true, required: false, refreshAfterSelection: true
+		input name: "modeChangeOn",  type: location.modes, title: "On when the location mode changes to:", multiple: true, required: false
+		input name: "modeChangesOff",  type: location.modes, title: "Off when the location mode changes to:", multiple: true, required: false, refreshAfterSelection: true
 		if (modeChangesOff) {
 			input name: "keepOff", type: "bool", title: "Keep off while in ${modeChangesOff} mode(s)?", defaultValue: true
 		}
