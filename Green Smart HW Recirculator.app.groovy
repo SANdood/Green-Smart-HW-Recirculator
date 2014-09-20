@@ -62,31 +62,36 @@ def setupApp() {
 		}
     
 		section("Recirculator Activation events:") {
-			input name: "motionDetected", type: "cability.motionSensor", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
+			input name: "motionDetected", type: "capability.motionSensor", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
 			if (motionDetected) {
 				input name: "motionStops", type: "bool", title: "Off when motion stops?", defaultValue: true
 			}
-	
+
+			paragraph ""
 			input name: "contactOpens", type: "capability.contactSensor", title: "On when any of these things open", multiple: true, required: false, refreshAfterSelection: true
 			if (contactOpens) {
 				input name: "openCloses", type: "bool", title: "Off when they re-close?", defaultValue: false
 			}
-	
+			
+			paragraph ""
 			input name: "contactCloses", type: "capability.contactSensor", title: "On when any of these things close", multiple: true, required: false, refreshAfterSelection: true
 			if (contactCloses) {
 				input name: "closedOpens", type: "bool", title: "Off when they re-open?", defaultValue: false
 			}
-	
+
+			paragraph ""
 			input name: "switchedOn", type: "capability.switch", title: "On when a switch is turned on", multiple: true, required: false, refreshAfterSelection: true
 			if (switchedOn) {
 				input name: "onSwitchedOff", type: "bool", title: "Off when turned off?", defaultValue: false
 			}
 
+			paragraph ""
 			input name: "useTimer", type: "bool", title: "On using a schedule?", defaultValue: false, refreshAfterSelection: true
 			if (useTimer) {
 				input name: "onEvery", type: "number", title: "On every XX minutes", defaultValue: 15, required: true
 			}
 			
+			paragraph ""
 			input name: "modeChangeOn",  type: "mode", title: "On when the location mode changes to:", multiple: true, required: false
 			input name: "modeChangesOff",  type: "mode", title: "Off when the location mode changes to:", multiple: true, required: false, refreshAfterSelection: true
 			if (modeChangesOff) {
