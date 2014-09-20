@@ -99,8 +99,8 @@ def setupApp() {
 				if (modeChangesOff.size() > 1) {
 					plural = "s"
 				}
-				def showModes = modeChangesOff.replace("[]","")
-				input name: "keepOff", type: "bool", title: "Keep off while in ${showModes} mode${plural}?", defaultValue: true
+				String showModes = "${modeChangesOff}"                
+				input name: "keepOff", type: "bool", title: "Keep off while in ${showModes.substring(1, showModes.length()-1)} mode${plural}?", defaultValue: true
 			}
 		}
 	}
