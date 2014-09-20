@@ -27,13 +27,13 @@
  *
  */
 definition(
-    name: "Green Smart HW Recirculator",
-    namespace: "SANdood",
-    author: "Barry A. Burke",
-    description: "Turns on HW Recirculation pump when Home, off when Away or Sleep. Optionally turns it on on a schedule whilst home (good for momentary contact switch).",
-    category: "Green Living",
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
+    name: 		"Green Smart HW Recirculator",
+    namespace: 	"SANdood",
+    author: 	"Barry A. Burke",
+    description: "Fully automated HW Recirculation pump.",
+    category: 	"Green Living",
+    iconUrl:	"https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
+    iconX2Url: 	"https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
 
 
 preferences {
@@ -42,8 +42,6 @@ preferences {
 
 def setupApp() {
 	dynamicPage(name: "setupApp", title: "Smart HW Recirulator Setup", install: true, uninstall: true)
-	
-
 
 	section("HW Recirculator") {
 		input name: "recircSwitch", type: "capability.switch", title: "Recirculator switch?", multiple: false, required: true
@@ -60,9 +58,9 @@ def setupApp() {
 		if (useTargetTemp) {
 			input name: "targetThermometer", type: "capability.temperatureMeasurement", title: "Use this thermometer", multiple: false, required: true
 			input name: "targetTemperature", type: "number", title: "Target temperature", defaultValue: 105, required: true
-		}
-		
+		}		
 	}
+    /*
 	section("Recirculator Activation events:") {
 	
 		input name: "motionDetected", type: "cability.motionSensor", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
@@ -85,8 +83,8 @@ def setupApp() {
 			input name: "onSwitchedOff", type: "bool", title: "Off when turned off?", defaultValue: false
 		}
 	
-		input name: "modeChangeOn",  type: location.modes, title: "On when the location mode changes to:", multiple: true, required: false
-		input name: "modeChangesOff",  type: location.modes, title: "Off when the location mode changes to:", multiple: true, required: false, refreshAfterSelection: true
+		input name: "modeChangeOn",  type: "mode", title: "On when the location mode changes to:", multiple: true, required: false
+		input name: "modeChangesOff",  type: "mode", title: "Off when the location mode changes to:", multiple: true, required: false, refreshAfterSelection: true
 		if (modeChangesOff) {
 			input name: "keepOff", type: "bool", title: "Keep off while in ${modeChangesOff} mode(s)?", defaultValue: true
 		}
@@ -95,7 +93,7 @@ def setupApp() {
 		if (useTimer) {
 			input name: "onEvery", type: "number", title: "On every XX minutes", defaultValue: 15, required: true
 		}
-	}
+	} */
 }
 
 def installed() {
@@ -114,6 +112,7 @@ def updated() {
 def initialize() {
 	// TODO: subscribe to attributes, devices, locations, etc.
     // subscribe to location.mode changes: turn "on" on changes to Home; off for changes to Away or Night
+    log.debug "Initializing"
 }
 
 def locationModeHandler() {
