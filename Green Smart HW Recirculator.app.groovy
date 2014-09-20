@@ -27,7 +27,7 @@
  *
  */
 definition(
-    name: 		"Green Smart HW Recirculator",
+    name:		"Green Smart HW Recirculator",
     namespace: 	"SANdood",
     author: 	"Barry A. Burke",
     description: "Fully automated HW Recirculation pump.",
@@ -41,59 +41,59 @@ preferences {
 }
 
 def setupApp() {
-	dynamicPage(name: "setupApp", title: "Smart HW Recirulator Setup", install: true, uninstall: true)
+	dynamicPage(name: "setupApp", title: "Smart HW Recirulator Setup", install: true, uninstall: true) {
 
-	section("HW Recirculator") {
-		input name: "recircSwitch", type: "capability.switch", title: "Recirculator switch?", multiple: false, required: true
+		section("HW Recirculator") {
+			input name: "recircSwitch", type: "capability.switch", title: "Recirculator switch?", multiple: false, required: true
 		
-		input name: "recircMomentary", type: "bool", title: "Is this a momentary switch?", required: true, defaultValue: true, refreshAfterSelection: true
-		if (!recircMomentary) {
-			input name: "offTimed", type: "bool", title: "Timed off?", defaultValue: true, refreshAfterSelection: true
-			if (offTimed) {
-				input name: "offMinutes", type: "number", title: "Off after XX minutes", defaultValue: 3 
+			input name: "recircMomentary", type: "bool", title: "Is this a momentary switch?", required: true, defaultValue: true, refreshAfterSelection: true
+			if (!recircMomentary) {
+				input name: "offTimed", type: "bool", title: "Timed off?", defaultValue: true, refreshAfterSelection: true
+				if (offTimed) {
+					input name: "offMinutes", type: "number", title: "Off after XX minutes", defaultValue: 3 
+				}
+			}
+		
+			input name: "useTargetTemp", type: "bool", title: "Use temperature control?", defaultValue: false, refreshAfterSelection: true
+			if (useTargetTemp) {
+				input name: "targetThermometer", type: "capability.temperatureMeasurement", title: "Use this thermometer", multiple: false, required: true
+				input name: "targetTemperature", type: "number", title: "Target temperature", defaultValue: 105, required: true
+			}		
+		}
+    
+		section("Recirculator Activation events:") {
+			input name: "motionDetected", type: "cability.motionSensor", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
+			if (motionDetected) {
+				input name: "motionStops", type: "bool", title: "Off when motion stops?", defaultValue: true
+			}
+	
+			input name: "contactOpens", type: "capability.contactSensor", title: "On when any of these things open", multiple: true, required: false, refreshAfterSelection: true
+			if (contactOpens) {
+				input name: "openCloses", type: "bool", title: "Off when they re-close?", defaultValue: false
+			}
+	
+			input name: "contactCloses", type: "capability.contactSensor", title: "On when any of these things close", multiple: true, required: false, refreshAfterSelection: true
+			if (contactCloses) {
+				input name: "closedOpens", type: "bool", title: "Off when they re-open?", defaultValue: false
+			}
+	
+			input name: "switchedOn", type: "capability.switch", title: "On when a switch is turned on", multiple: true, required: false, refreshAfterSelection: true
+			if (switchedOn) {
+				input name: "onSwitchedOff", type: "bool", title: "Off when turned off?", defaultValue: false
+			}
+
+			input name: "useTimer", type: "bool", title: "On using a schedule?", defaultValue: false, refreshAfterSelection: true
+			if (useTimer) {
+				input name: "onEvery", type: "number", title: "On every XX minutes", defaultValue: 15, required: true
+			}
+			
+			input name: "modeChangeOn",  type: "mode", title: "On when the location mode changes to:", multiple: true, required: false
+			input name: "modeChangesOff",  type: "mode", title: "Off when the location mode changes to:", multiple: true, required: false, refreshAfterSelection: true
+			if (modeChangesOff) {
+				input name: "keepOff", type: "bool", title: "Keep off while in ${modeChangesOff} mode(s)?", defaultValue: true
 			}
 		}
-		
-		input name: "useTargetTemp", type: "bool", title: "Use temperature control?", defaultValue: false, refreshAfterSelection: true
-		if (useTargetTemp) {
-			input name: "targetThermometer", type: "capability.temperatureMeasurement", title: "Use this thermometer", multiple: false, required: true
-			input name: "targetTemperature", type: "number", title: "Target temperature", defaultValue: 105, required: true
-		}		
 	}
-    /*
-	section("Recirculator Activation events:") {
-	
-		input name: "motionDetected", type: "cability.motionSensor", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
-			if (motionDetected) {
-			input name: "motionStops", type: "bool", title: "Off when motion stops?", defaultValue: true
-		}
-	
-		input name: "contactOpens", type: "capability.contactSensor", title: "On when any of these things open", multiple: true, required: false, refreshAfterSelection: true
-		if (contactOpens) {
-			input name: "openCloses", type: "bool", title: "Off when they re-close?", defaultValue: false
-		}
-	
-		input name: "contactCloses", type: "capability.contactSensor", title: "On when any of these things close", multiple: true, required: false, refreshAfterSelection: true
-		if (contactCloses) {
-			input name: "closedOpens", type: "bool", title: "Off when they re-open?", defaultValue: false
-		}
-	
-		input name: "switchedOn", type: "capability.switch", title: "On when a switch is turned on", multiple: true, required: false, refreshAfterSelection: true
-		if (switchedOn) {
-			input name: "onSwitchedOff", type: "bool", title: "Off when turned off?", defaultValue: false
-		}
-	
-		input name: "modeChangeOn",  type: "mode", title: "On when the location mode changes to:", multiple: true, required: false
-		input name: "modeChangesOff",  type: "mode", title: "Off when the location mode changes to:", multiple: true, required: false, refreshAfterSelection: true
-		if (modeChangesOff) {
-			input name: "keepOff", type: "bool", title: "Keep off while in ${modeChangesOff} mode(s)?", defaultValue: true
-		}
-	
-		input name: "useTimer", type: "bool", title: "On using a schedule?", defaultValue: false, refreshAfterSelection: true
-		if (useTimer) {
-			input name: "onEvery", type: "number", title: "On every XX minutes", defaultValue: 15, required: true
-		}
-	} */
 }
 
 def installed() {
