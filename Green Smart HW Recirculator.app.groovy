@@ -37,20 +37,72 @@ definition(
 
 
 preferences {
-	section("HW Recirculation Switch") {
+	page( name: "setupApp" )
+}
+
+def setupApp() {
+	dynamicPage(name: "setupApp", title: "Smart HW Recirulator Setup", install: true, uninstall: true)
+	
+
+
+	section("HW Recirculator") {
 		input "recircSwitch", "capability.switch", title: "Recirculator switch?", multiple: false, required: true
-		input "recircMomentary", "bool", title: "Is this a momentary switch?", required: true, default: true
-	}
-	section("Activation events:") {
-		input "recircMotion", "cability.motion", title: "When motion is detected here", multiple: true, required: false
-		input "contactOpens", "capability.contactSensor", title: "When any of these things open", multiple: true, required: false
-		input "contactCloses", "capability.contactSensor", title: "When any of these things close", multiple: true, required: false
-		input "switchedOn", "capability.switch", title: "When a switch is turned on", multiple: true, required: false
-		input "modeChanges", location.modes, title: "When the location mode changes to:", multiple: true, required: false
+		
+		input "recircMomentary", type: "bool", title: "Is this a momentary switch?", required: true, defaultValue: true, refreshAfterSelection: true
+		if (!recircMomentary) {
+			input "offTimed", type: "bool", title: "Timed off?", defaultValue: true, refreshAfterSelection: true
+			if (offTimed) {
+				input "offMinutes", type: "number", title: "Off after XX minutes", defaultValue: 3, 
+			}
 		}
-        // automate on/off with location.mode changes (boolean)
-        // turn on interval (seconds/minutes) - set to 0 for on/off vs. momementary contact switch
-//	}
+		
+		input "useTargetTemp", type: "bool", title: "Use temperature control?", defaultValue: false, refreshAfterSelection: true
+		if (useTargetTemp) {
+			input "targetThermometer", "capability.temperatureMeasurement", title: "Use this thermometer", multiple: false, required: true
+			input "targetTemperature", type: "number", title: "Target temperature", defaultValue: 105, required: true
+		}
+		
+	}
+	section("Recirculator Activation events:") {
+	
+		input "motionDetected", "cability.motion", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
+			if (motionDetected) {
+			input "motionStops", type: "bool", title: "Off when motion stops?", defaultValue: true
+		}
+	
+		input "contactOpens", "capability.contactSensor", title: "On when any of these things open", multiple: true, required: false, refreshAfterSelection: true
+		if (contactOpens) {
+			input "openCloses", type: "bool", title: "Off when they re-close?", defaultValue: false
+		}
+	
+		input "contactCloses", "capability.contactSensor", title: "On when any of these things close", multiple: true, required: false, refreshAfterSelection: true
+		if (contactCloses) {
+			input "closedOpens", type: "bool", title: "Off when they re-open?", defaultValue: false
+		}
+	
+		input "switchedOn", "capability.switch", title: "On when a switch is turned on", multiple: true, required: false, refreshAfterSelection: true
+		if (switchedOn) {
+			input "onSwitchedOff", type: "bool", title: "Off when turned off?", defaultValue: false
+		}
+	
+		input "modeChangeOn", location.modes, title: "On when the location mode changes to:", multiple: true, required: false
+		input "modeChangesOff", location.modes, title: "Off when the location mode changes to:", multiple: true, required: false, refreshAfterSelection: true
+		if (modeChangesOff) {
+			input "keepOff", type: "bool", title: "Keep off while in ${modeChangesOff} mode(s)?", defaultValue: true
+		}
+	
+		input "useTimer", type: "bool", title: "On using a schedule?", defaultValue: false, refreshAfterSelection: true
+		if (useTimer) {
+			input "onEvery", type: "number", title: "On every XX minutes", defaultValue: 15, required: true
+		}
+
+	}
+	
+
+
+
+
+	}
 }
 
 def installed() {
