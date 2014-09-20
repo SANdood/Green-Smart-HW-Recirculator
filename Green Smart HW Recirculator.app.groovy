@@ -44,7 +44,7 @@ preferences {
 	section("Activation events:") {
 		input "recircMotion", "cability.motion", title: "When motion is detected here", multiple: true, required: false
 		input "contactOpens", "capability.contactSensor", title: "When any of these things open", multiple: true, required: false
-		input "contactCloses", "capability.contactSensor", title: "When any of these things close:, multiple: true, required: false
+		input "contactCloses", "capability.contactSensor", title: "When any of these things close", multiple: true, required: false
 		input "switchedOn", "capability.switch", title: "When a switch is turned on", multiple: true, required: false
 		input "modeChanges", location.modes, title: "When the location mode changes to:", multiple: true, required: false
 		}
