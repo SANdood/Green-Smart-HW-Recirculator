@@ -246,7 +246,7 @@ def locationModeHandler(evt) {
 	log.debug "locationModeHandler: $evt.name, $evt.value"
     
 	if (modeChangeOn) {
-    	if (modeChangeOn.contains( "$evt.Value" )) {									
+    	if (modeChangeOn.contains( "$evt.value" )) {									
     		state.keepOffNow = false
             onHandler()
     		if (useTimer) {
@@ -258,7 +258,7 @@ def locationModeHandler(evt) {
     }
     
     if (modeChangeOff) {
-    	if (modeChangeOff.contains( "$evt.Value" )) {
+    	if (modeChangeOff.contains( "$evt.value" )) {
         	unschedule()												// stop any scheduled -on or -off
     		offHandler()												// Send one final turn-off
             unschedule()     											// offHandler reschedules on events
