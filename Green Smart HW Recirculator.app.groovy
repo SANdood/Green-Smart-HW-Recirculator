@@ -132,12 +132,12 @@ def updated() {
 def initialize() {
     log.debug "Initializing"
     
-    if ((settings.keepOff == "") || (settings.keepOff == null)) { 
-    	settings.keepOff = false 		// if not using modes, ensure no blackout periods
+    if ((keepOff == "") || (keepOff == null)) { 
+    	keepOff = false 		// if not using modes, ensure no blackout periods
     }
     
-    if (settings.modeChangeOff && keepOff) {
-    	if (settings.modeChangeOff.contains( location.currentValue( "mode" ))) {
+    if (modeChangeOff && keepOff) {
+    	if (modeChangeOff.contains( location.currentValue( "mode" ))) {
         	// Just in case we are installing while Away (or late at Night :)
 			state.keepOffNow == true
         }
@@ -146,39 +146,39 @@ def initialize() {
         }
     }
 
-    if (settings.useTargetTemp) {
-    	subscribe( settings.targetThermometer, "temperature", tempHandler)
+    if (useTargetTemp) {
+    	subscribe( targetThermometer, "temperature", tempHandler)
    	}
     
-    if (settings.motionActive) {
-    	subscribe( settings.motionActive, "motion.active", onHandler)
-        if (settings.motionInactive) {
-        	subscribe( settings.motionActive, "motion.inactive", offHandler)
+    if (motionActive) {
+    	subscribe( motionActive, "motion.active", onHandler)
+        if (motionInactive) {
+        	subscribe( motionActive, "motion.inactive", offHandler)
         }
     }
     
     if (contactOpens) {
-    	subscribe( settings.contactOpens, "contact.open", onHandler)
+    	subscribe( contactOpens, "contact.open", onHandler)
         if (openCloses) {
-        	subscribe( settings.contactOpens, "contact.close", offHandler )
+        	subscribe( contactOpens, "contact.close", offHandler )
         }
     }
     
     if (contactCloses) {
-    	subscribe( settings.contactCloses, "contact.close", onHandler)
+    	subscribe( contactCloses, "contact.close", onHandler)
         if (closedOpens) {
-        	subscribe( settings.contactCloses, "contact.open", offHandler )
+        	subscribe( contactCloses, "contact.open", offHandler )
         }
     }
     
     if (switchedOn) {
-    	subscribe( settings.switchedOn, "switch.on", onHandler)
+    	subscribe( switchedOn, "switch.on", onHandler)
         if (onSwitchedOff) {
-        	subscribe( settings.switchedOn, "switch.off", offHandler )
+        	subscribe( switchedOn, "switch.off", offHandler )
         }
     }
     
-    if (settings.modeChangeOn || settings.modeChangeOff) {
+    if (modeChangeOn || modeChangeOff) {
     	subscribe( location, locationModeHandler)
     }
     else {														// not using modes - check if using schedule 24x7
@@ -191,14 +191,14 @@ def initialize() {
 def tempHandler(evt) {
 	log.debug "tempHandler $evt.name: $evt.value"
     
-    if (settings.targetOff) {
-    	if (evt.value >= settings.targetTemperature) {
+    if (targetOff) {
+    	if (evt.value >= targetTemperature) {
     		offHandler()
     	}
     }
     
-    if (settings.targetOn) {
-    	if ( evt.value < settings.targetTemperature) {
+    if (targetOn) {
+    	if ( evt.value < targetTemperature) {
         	onHandler()
         }
     }
@@ -206,12 +206,12 @@ def tempHandler(evt) {
 
 def onHandler() {
 
-    if (settings.keepOff && state.keepOffNow) {		// we're not supposed to turn it on right now
+    if (keepOff && state.keepOffNow) {		// we're not supposed to turn it on right now
     	return
     }
-    if (settings.useTargetTemp) {					// only turn it on if not hot enough yet
+    if (useTargetTemp) {					// only turn it on if not hot enough yet
 
-    	if (settings.targetThermometer.latestValue( "temperature" ) < settings.targetTemperature) {
+    	if (targetThermometer.latestValue( "temperature" ) < targetTemperature) {
         	turnItOn()
         }
     }
@@ -221,20 +221,20 @@ def onHandler() {
 }
          
 def turnItOn() {    
-	settings.recircSwitch.on()
-    if (settings.timedOff) {
+	recircSwitch.on()
+    if (timedOff) {
     	unschedule()
-    	runIn(settings.offAfterMinutes * 60, "offHandler", [overwrite: false])
-        if (settings.useTimer) {
+    	runIn(offAfterMinutes * 60, "offHandler", [overwrite: false])
+        if (useTimer) {
     		schedule("0 */${onEvery} * * * ?", "onHandler")         	// schedule onHandler every $onEvery minutes
         }
     }
 }
 
 def offHandler() {
-    if (settings.recircSwitch.latestValue( "switch" ) != "off" ) {  	// avoid superfluous off()s
-    	settings.recircSwitch.off()
-        if (settings.timedOff) {
+    if (recircSwitch.latestValue( "switch" ) != "off" ) {  	// avoid superfluous off()s
+    	recircSwitch.off()
+        if (timedOff) {
     		unschedule()												// clean up runIn() bug)
         	schedule("0 */${onEvery} * * * ?", "onHandler")         	// schedule onHandler every $onEvery minutes
     	}
@@ -245,8 +245,8 @@ def offHandler() {
 def locationModeHandler(evt) {
 	log.debug "locationModeHandler: $evt.name, $evt.value"
     
-	if (settings.modeChangeOn) {
-    	if (settings.modeChangeOn.contains( "$evt.Value" )) {									
+	if (modeChangeOn) {
+    	if (modeChangeOn.contains( "$evt.Value" )) {									
     		state.keepOffNow = false
             onHandler()
     		if (useTimer) {
@@ -257,12 +257,12 @@ def locationModeHandler(evt) {
         return
     }
     
-    if (settings.modeChangeOff) {
-    	if (settings.modeChangeOff.contains( "$evt.Value" )) {
+    if (modeChangeOff) {
+    	if (modeChangeOff.contains( "$evt.Value" )) {
         	unschedule()												// stop any scheduled -on or -off
     		offHandler()												// Send one final turn-off
             unschedule()     											// offHandler reschedules on events
-    		if (settings.keepoff) {
+    		if (keepoff) {
     			state.keepOffNow = true									// make sure nobody turns it on again
     		}
         }
