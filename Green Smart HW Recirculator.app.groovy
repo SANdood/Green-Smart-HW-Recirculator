@@ -268,4 +268,3 @@ def locationModeHandler(evt) {
         }
     }
 }
-
