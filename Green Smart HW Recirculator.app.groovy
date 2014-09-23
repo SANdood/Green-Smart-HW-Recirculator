@@ -32,9 +32,9 @@ definition(
     author: 	"Barry A. Burke",
     description: "Fully automated HW Recirculation pump.",
     category: 	"Green Living",
-    iconUrl:	"https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
-    iconX2Url: 	"https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
-
+    iconUrl: 	"https://s3.amazonaws.com/smartapp-icons/GreenLiving/Cat-GreenLiving.png",
+    iconX2Url:	"https://s3.amazonaws.com/smartapp-icons/GreenLiving/Cat-GreenLiving@2x.png"
+)
 
 preferences {
 	page( name: "setupApp" )
@@ -48,9 +48,9 @@ def setupApp() {
 		
 			input name: "recircMomentary", type: "bool", title: "Is this a momentary switch?", required: true, defaultValue: true, refreshAfterSelection: true
 			if (!recircMomentary) {
-				input name: "offTimed", type: "bool", title: "Timed off?", defaultValue: true, refreshAfterSelection: true
-				if (offTimed) {
-					input name: "offMinutes", type: "number", title: "Off after XX minutes", defaultValue: 3 
+				input name: "timedOff", type: "bool", title: "Timed off?", defaultValue: true, refreshAfterSelection: true
+				if (timedOff) {
+					input name: "offAfterMinutes", type: "number", title: "On for how many minutes?", defaultValue: 3 
 				}
 			}
 		
@@ -58,13 +58,21 @@ def setupApp() {
 			if (useTargetTemp) {
 				input name: "targetThermometer", type: "capability.temperatureMeasurement", title: "Use this thermometer", multiple: false, required: true
 				input name: "targetTemperature", type: "number", title: "Target temperature", defaultValue: 105, required: true
+				input name: "targetOff", type: "bool", title: "Off at target temp?", defaultValue: true
+                input name: "targetOn", type: "bool", title: "On when below target?", defaultValue: false, refreshAfterSelection: true
+                if (!targetOff && !targetOn) { useTargetTemp = false }
+                if (targetOn) {
+                	input name: "targetSwing", type: "number", title: "Below by this many degrees:", defaultValue: 5, required: true
+                }
 			}		
 		}
     
 		section("Recirculator Activation events:") {
-			input name: "motionDetected", type: "capability.motionSensor", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
-			if (motionDetected) {
-				input name: "motionStops", type: "bool", title: "Off when motion stops?", defaultValue: true
+        
+        	paragraph ""
+			input name: "motionActive", type: "capability.motionSensor", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
+			if (motionActivated) {
+				input name: "motionInactive", type: "bool", title: "Off when motion stops?", defaultValue: true
 			}
 
 			paragraph ""
@@ -80,7 +88,7 @@ def setupApp() {
 			}
 
 			paragraph ""
-			input name: "switchedOn", type: "capability.switch", title: "On when a switch is turned on", multiple: true, required: false, refreshAfterSelection: true
+			input name: "switchedOn", type: "capability.switch", title: "On when a switch is turned on", multiple: false, required: false, refreshAfterSelection: true
 			if (switchedOn) {
 				input name: "onSwitchedOff", type: "bool", title: "Off when turned off?", defaultValue: false
 			}
@@ -93,13 +101,14 @@ def setupApp() {
 			
 			paragraph ""
 			input name: "modeChangeOn",  type: "mode", title: "On when the location mode changes to:", multiple: true, required: false
-			input name: "modeChangesOff",  type: "mode", title: "Off when the location mode changes to:", multiple: true, required: false, refreshAfterSelection: true
-			if (modeChangesOff) {
+			input name: "modeChangeOff",  type: "mode", title: "Off when the location mode changes to:", multiple: true, required: false, refreshAfterSelection: true
+			if (modeChangeOn && modeChangeOff) {
 				def plural = ""
-				if (modeChangesOff.size() > 1) {
+				if (modeChangeOff.size() > 1) {
 					plural = "s"
 				}
-				String showModes = "${modeChangesOff}"                
+				String showModes = "${modeChangeOff}"
+                paragraph "This overrides ALL Activation events!"
 				input name: "keepOff", type: "bool", title: "Keep off while in ${showModes.substring(1, showModes.length()-1)} mode${plural}?", defaultValue: true
 			}
 		}
@@ -116,27 +125,147 @@ def updated() {
 	log.debug "Updated with settings: ${settings}"
 
 	unsubscribe()
+    unschedule()
 	initialize()
 }
 
 def initialize() {
-	// TODO: subscribe to attributes, devices, locations, etc.
-    // subscribe to location.mode changes: turn "on" on changes to Home; off for changes to Away or Night
     log.debug "Initializing"
-}
-
-def locationModeHandler() {
-
-// Home
-	// turn switch on
-    // unschedule()
-    // if (interval) { schedule "on" every XX secs/mins }
     
-// Away & Night
-	// turn switch off
-    // unschedule()
+    if ((settings.keepOff == "") || (settings.keepOff == null)) { 
+    	settings.keepOff = false 		// if not using modes, ensure no blackout periods
+    }
+    
+    if (settings.modeChangeOff && keepOff) {
+    	if (settings.modeChangeOff.contains( location.currentValue( "mode" ))) {
+        	// Just in case we are installing while Away (or late at Night :)
+			state.keepOffNow == true
+        }
+        else {
+        	state.keepOffNow == false
+        }
+    }
+
+    if (settings.useTargetTemp) {
+    	subscribe( settings.targetThermometer, "temperature", tempHandler)
+   	}
+    
+    if (settings.motionActive) {
+    	subscribe( settings.motionActive, "motion.active", onHandler)
+        if (settings.motionInactive) {
+        	subscribe( settings.motionActive, "motion.inactive", offHandler)
+        }
+    }
+    
+    if (contactOpens) {
+    	subscribe( settings.contactOpens, "contact.open", onHandler)
+        if (openCloses) {
+        	subscribe( settings.contactOpens, "contact.close", offHandler )
+        }
+    }
+    
+    if (contactCloses) {
+    	subscribe( settings.contactCloses, "contact.close", onHandler)
+        if (closedOpens) {
+        	subscribe( settings.contactCloses, "contact.open", offHandler )
+        }
+    }
+    
+    if (switchedOn) {
+    	subscribe( settings.switchedOn, "switch.on", onHandler)
+        if (onSwitchedOff) {
+        	subscribe( settings.switchedOn, "switch.off", offHandler )
+        }
+    }
+    
+    if (settings.modeChangeOn || settings.modeChangeOff) {
+    	subscribe( location, locationModeHandler)
+    }
+    else {														// not using modes - check if using schedule 24x7
+    	if ( useTimer ) {
+    	schedule("0 */${onEvery} * * * ?", "onHandler")         	// schedule onHandler every $onEvery minutes
+        }
+    }
 }
 
-def onScheduleHandler() {
-	// swtich "on"
+def tempHandler(evt) {
+	log.debug "tempHandler $evt.name: $evt.value"
+    
+    if (settings.targetOff) {
+    	if (evt.value >= settings.targetTemperature) {
+    		offHandler()
+    	}
+    }
+    
+    if (settings.targetOn) {
+    	if ( evt.value < settings.targetTemperature) {
+        	onHandler()
+        }
+    }
 }
+
+def onHandler() {
+
+    if (settings.keepOff && state.keepOffNow) {		// we're not supposed to turn it on right now
+    	return
+    }
+    if (settings.useTargetTemp) {					// only turn it on if not hot enough yet
+
+    	if (settings.targetThermometer.latestValue( "temperature" ) < settings.targetTemperature) {
+        	turnItOn()
+        }
+    }
+    else {
+    	turnItOn()
+    }
+}
+         
+def turnItOn() {    
+	settings.recircSwitch.on()
+    if (settings.timedOff) {
+    	unschedule()
+    	runIn(settings.offAfterMinutes * 60, "offHandler", [overwrite: false])
+        if (settings.useTimer) {
+    		schedule("0 */${onEvery} * * * ?", "onHandler")         	// schedule onHandler every $onEvery minutes
+        }
+    }
+}
+
+def offHandler() {
+    if (settings.recircSwitch.latestValue( "switch" ) != "off" ) {  	// avoid superfluous off()s
+    	settings.recircSwitch.off()
+        if (settings.timedOff) {
+    		unschedule()												// clean up runIn() bug)
+        	schedule("0 */${onEvery} * * * ?", "onHandler")         	// schedule onHandler every $onEvery minutes
+    	}
+    }
+
+}
+
+def locationModeHandler(evt) {
+	log.debug "locationModeHandler: $evt.name, $evt.value"
+    
+	if (settings.modeChangeOn) {
+    	if (settings.modeChangeOn.contains( "$evt.Value" )) {									
+    		state.keepOffNow = false
+            onHandler()
+    		if (useTimer) {
+    			unschedule()											// stop any lingering schedules
+        		schedule("0 */${onEvery} * * * ?", "onHandler")         // schedule onHandler every $onEvery minutes							// schedule onHandler every $onEvery minutes 
+    		}
+        }
+        return
+    }
+    
+    if (settings.modeChangeOff) {
+    	if (settings.modeChangeOff.contains( "$evt.Value" )) {
+        	unschedule()												// stop any scheduled -on or -off
+    		offHandler()												// Send one final turn-off
+            unschedule()     											// offHandler reschedules on events
+    		if (settings.keepoff) {
+    			state.keepOffNow = true									// make sure nobody turns it on again
+    		}
+        }
+    }
+}
+
