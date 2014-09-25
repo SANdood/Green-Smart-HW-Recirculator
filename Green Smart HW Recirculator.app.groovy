@@ -224,7 +224,7 @@ def locationModeHandler(evt) {
     
 	if (modeChangeOn) {
     	if (modeChangeOn.contains( "$evt.value" )) {
-        	sendNotificationEvent ( "Plus, I enabled ${recircSwitch.name}" )
+        	sendNotificationEvent ( "Plus, I enabled ${recircSwitch.displayName}" )
     		state.keepOffNow = false
     		if (useTimer) {
     			unschedule()											// stop any lingering schedules
@@ -237,7 +237,7 @@ def locationModeHandler(evt) {
     
     if (modeChangeOff) {
     	if (modeChangeOff.contains( "$evt.value" )) {
-            sendNotificationEvent ( "Plus, I disabled ${recircSwitch.name}" )
+            sendNotificationEvent ( "Plus, I disabled ${recircSwitch.displayName}" )
         	unschedule()												// stop any scheduled -on or -off
 			turnItOff()													// Send one final turn-off    											// offHandler reschedules on events
     		if (keepoff) {
