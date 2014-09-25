@@ -91,22 +91,12 @@ def setupApp() {
 			}
 			
 			paragraph ""
-			input name: "modeChangeOn",  type: "mode", title: "On when the location mode changes to:", multiple: true, required: false
-			input name: "modeChangeOff",  type: "mode", title: "Off when the location mode changes to:", multiple: true, required: false, refreshAfterSelection: true
-			if (modeChangeOn && modeChangeOff) {
-				def plural = ""
-				if (modeChangeOff.size() > 1) {
-					plural = "s"
-				}
-				String showModes = "${modeChangeOff}"
-				paragraph "This overrides ALL Activation events!"
-				input name: "keepOff", type: "bool", title: "Keep off while in ${showModes.substring(1, showModes.length()-1)} mode${plural}?", defaultValue: true
-			}
+			input name: "modeOn",  type: "mode", title: "Enable for specific mode(s)?", multiple: true, required: false
 		}
 		
 		section([mobileOnly:true]) {
 			label title: "Assign a name for this SmartApp", required: false
-			mode title: "Set for specific mode(s)", required: false
+//			mode title: "Set for specific mode(s)", required: false
 		}
 	}
 }
@@ -128,17 +118,17 @@ def updated() {
 def initialize() {
 	log.debug "Initializing"
 
-	if ((keepOff == "") || (keepOff == null)) { keepOff = false }		// if not using modes, ensure no blackout periods
+	state.keepOffNow = false 
 
-	state.keepOffNow = false
-
-	if (modeChangeOff && keepOff) {
-		if (modeChangeOff.contains( location.currentValue( "mode" ))) {
-			// Just in case we are installing while Away (or late at Night :)
-			state.keepOffNow == true
-		}
+	if (modeOn) {
+    	subscribe( location, locationModeHandler)
+        if (location.currentMode in modeOn) {
+        	state.keepOffNow == false 
+            
+            }
+        else { state.keepOffNow = true }
 	}
-
+    
 	if (useTargetTemp) { subscribe( targetThermometer, "temperature", tempHandler) }
 
 	if (motionActive) {
@@ -161,12 +151,7 @@ def initialize() {
 		if (onSwitchedOff) { subscribe( switchedOn, "switch.off", offHandler ) }
 	}
 
-	if (modeChangeOn || modeChangeOff) { subscribe( location, locationModeHandler) }
-	else {														// not using modes - check if using schedule 24x7
-		if ( useTimer ) {
-			schedule("0 */${onEvery} * * * ?", "onHandler")         	// schedule onHandler every $onEvery minutes
-        }
-    }
+    if ( !state.keepOffNow && useTimer ) { schedule("0 */${onEvery} * * * ?", "turnItOn") }
 }
 
 def tempHandler(evt) {
@@ -183,62 +168,72 @@ def tempHandler(evt) {
 
 def onHandler(evt) {
 	log.debug "onHandler $evt.name: $evt.value"
-	
-    if (keepOff && state.keepOffNow) { return }		// we're not supposed to turn it on right now
 
-    if (useTargetTemp) {							// only turn it on if not hot enough yet
-    	if (targetThermometer.currentTemperature < targetTemperature) { turnItOn() }
-    }
-    else { turnItOn() }
+	turnItOn()
 }
          
-def turnItOn() {    
-	if (!recircMomentary) {
-		if (recircSwitch.currentSwitch != "on") { recircSwitch.on() }
-	}
-    else { recircSwitch.on() }
+def turnItOn() { 
+    if (state.keepOffNow) { return }				// we're not supposed to turn it on right now
+
+	def turnOn = true
+    if (useTargetTemp) {							// only turn it on if not hot enough yet
+    	if (targetThermometer.currentTemperature >= targetTemperature) { turnOn = false }
+    }
     
-    if (timedOff) {
-    	unschedule( "turnItOff" )
-    	runIn(offAfterMinutes * 60, "turnItOff", [overwrite: false])
+    if (turnOn) {
+		if (!recircMomentary) {
+			if (recircSwitch.currentSwitch != "on") { recircSwitch.on() }
+		}
+    	else { recircSwitch.on() }
+    
+    	if (timedOff) {
+    		runIn(offAfterMinutes * 60, "turnItOff", [overwrite: false])
+        }
     }
 }
 
 def offHandler(evt) {
 	log.debug "offHandler $evt.name: $evt.value"
 
-    if (useTargetTemp) {						// only turn it of if it's hot enough
-    	if (targetThermometer.currentTemperature >= targetTemperature) { turnItOff() }
-    }
-    else { turnItOff() }
+    turnItOff()
 }
 
 def turnItOff() {
-	if (recircSwitch.currentSwitch != "off" ) { recircSwitch.off() } // avoid superfluous off()s
-    	
-   	unschedule( "turnItOff" )								// clean up any mess
+
+	def turnOff = true
+    if (useTargetTemp) {						// only turn it off if it's hot enough
+    	if (targetThermometer.currentTemperature < targetTemperature) { turnOff = false }
+    }
+
+	if (turnOff) {
+		if (recircSwitch.currentSwitch != "off" ) { recircSwitch.off() }// avoid superfluous off()s
+        
+        // If we want to let the recirculator to run longer if there are multiple demand calls, comment out
+        // the following
+    	if (timedOff) { unschedule( "turnItOff" ) }						// delete any other pending off schedules
+    }
 }
 
 def locationModeHandler(evt) {
 	log.debug "locationModeHandler: $evt.name, $evt.value"
     
-	if (modeChangeOn) {
-    	if (modeChangeOn.contains( "$evt.value" )) {
+	if (modeOn) {
+
+        if (evt.value in modeOn) {
+        	log.debug "Enabling GSHWR"
         	sendNotificationEvent ( "Plus, I enabled ${recircSwitch.displayName}" )
     		state.keepOffNow = false
     		if (useTimer) {
-    			unschedule()											// stop any lingering schedules
-        		schedule("0 */${onEvery} * * * ?", "onHandler")         // schedule onHandler every $onEvery minutes							// schedule onHandler every $onEvery minutes 
+    			unschedule( "turnItOn" )											// stop any lingering schedules
+        		schedule("0 */${onEvery} * * * ?", "turnItOn")         // schedule onHandler every $onEvery minutes							// schedule onHandler every $onEvery minutes 
     		}
             turnItOn()													// and turn it on to start the day!
 		}
-        return
-    }
-    
-    if (modeChangeOff) {
-    	if (modeChangeOff.contains( "$evt.value" )) {
+        else {
+			log.debug "Disabling GSHWR"
             sendNotificationEvent ( "Plus, I disabled ${recircSwitch.displayName}" )
-        	unschedule()												// stop any scheduled -on or -off
+        	if (useTimer) { unschedule( "turnItOn" ) }					// stop timed on schedules
+    		if (timedOff) { unschedule( "turnItOff" ) }					// delete any pending off schedules
 			turnItOff()													// Send one final turn-off    											// offHandler reschedules on events
     		if (keepoff) {
     			state.keepOffNow = true									// make sure nobody turns it on again
