@@ -2,7 +2,9 @@
 SmartThings green automated HW recirculator
 
 <h2>Background</h2>
-Despite disagreements on whether they are actually green or not, whole-house how water recirculation is becoming increasingly popular in new home buildings and retrofits. On the side of "green" is that you don't waste all that cold water running down the drain while you wait for the shower to warm up (to the tune of hundreds of gallons per year), while the anti- crowd complains that you heat water that is frequently not used.
+Despite disagreements on whether they are actually green or not, whole-house hot water recirculation is becoming increasingly popular in new home buildings and retrofits. On the side of "green" is that you don't waste all that cold water running down the drain while you wait for the shower to warm up (to the tune of hundreds of gallons per year), while the anti- crowd complains that you heat water that is frequently not used.
+
+Me, I just like the hotel idea of hot-water at the ready, all the time. Especially in the winter - I mean really - who wants to be standing around waiting for the shower to get warm?
 
 In my attempt to split the difference, last year (pre-SmartThings), I found the Redy-Temp HW recirculator pump (http://www.redytemp.com/). This device offers several innovative and energy-saving features, including:
 
