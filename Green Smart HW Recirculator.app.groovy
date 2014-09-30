@@ -187,6 +187,7 @@ def turnItOn() {
     	else { recircSwitch.on() }
     
     	if (timedOff) {
+        	unschedule( "turnItOff" )
     		runIn(offAfterMinutes * 60, "turnItOff", [overwrite: false])
         }
     }
@@ -206,11 +207,8 @@ def turnItOff() {
     }
 
 	if (turnOff) {
+        if (timedOff) { unschedule( "turnItOff" ) }						// delete any other pending off schedules
 		if (recircSwitch.currentSwitch != "off" ) { recircSwitch.off() }// avoid superfluous off()s
-        
-        // If we want to let the recirculator to run longer if there are multiple demand calls, comment out
-        // the following
-    	if (timedOff) { unschedule( "turnItOff" ) }						// delete any other pending off schedules
     }
 }
 
@@ -218,7 +216,6 @@ def locationModeHandler(evt) {
 	log.debug "locationModeHandler: $evt.name, $evt.value"
     
 	if (modeOn) {
-
         if (evt.value in modeOn) {
         	log.debug "Enabling GSHWR"
         	sendNotificationEvent ( "Plus, I enabled ${recircSwitch.displayName}" )
@@ -234,10 +231,8 @@ def locationModeHandler(evt) {
             sendNotificationEvent ( "Plus, I disabled ${recircSwitch.displayName}" )
         	if (useTimer) { unschedule( "turnItOn" ) }					// stop timed on schedules
     		if (timedOff) { unschedule( "turnItOff" ) }					// delete any pending off schedules
-			turnItOff()													// Send one final turn-off    											// offHandler reschedules on events
-    		if (keepoff) {
-    			state.keepOffNow = true									// make sure nobody turns it on again
-    		}
-        }
+   			state.keepOffNow = true										// make sure nobody turns it on again
+			turnItOff()													// Send one final turn-off  
+		}
     }
 }
