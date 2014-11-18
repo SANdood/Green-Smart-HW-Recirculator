@@ -35,17 +35,18 @@ def setupApp() {
 
 		section("HW Recirculator") {
 			input name: "recircSwitch", type: "capability.switch", title: "Recirculator switch?", multiple: false, required: true
-			settings.recircMomentary = false
 			input name: "recircMomentary", type: "bool", title: "Is this a momentary switch?", required: true, defaultValue: true, refreshAfterSelection: true
 			if (!recircMomentary) {
-				input name: "timedOff", type: "bool", title: "Timed off?", defaultValue: false, refreshAfterSelection: true
+				input name: "timedOff", type: "bool", title: "Timed off?", defaultValue: false, required: true, refreshAfterSelection: true
 				if (timedOff) {
-					input name: "offAfterMinutes", type: "number", title: "On for how many minutes?", defaultValue: 3 
+					input name: "offAfterMinutes", type: "number", title: "On for how many minutes?", required: true, defaultValue: 3 
 				}
-			}
-			
-			paragraph ""
-			input name: "useTargetTemp", type: "bool", title: "Use temperature control?", defaultValue: false, refreshAfterSelection: true
+			}		
+		}
+
+		section("Recirculator Activation events:") {
+
+			input name: "useTargetTemp", type: "bool", title: "On using target temperature?", required: true, defaultValue: false, refreshAfterSelection: true
 			if (useTargetTemp) {
 				input name: "targetThermometer", type: "capability.temperatureMeasurement", title: "Use this thermometer", multiple: false, required: true
 				input name: "targetTemperature", type: "number", title: "Target temperature", defaultValue: 105, required: true
@@ -55,43 +56,52 @@ def setupApp() {
 				if (targetOn) {
 					input name: "targetSwing", type: "number", title: "Below by this many degrees:", defaultValue: 5, required: true
 				}
-			}		
-		}
-
-		section("Recirculator Activation events:") {
-
-			paragraph ""
-			input name: "motionActive", type: "capability.motionSensor", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
-			if (motionActivated) {
-				input name: "motionInactive", type: "bool", title: "Off when motion stops?", defaultValue: true
 			}
-
-			paragraph ""
-			input name: "contactOpens", type: "capability.contactSensor", title: "On when any of these things open", multiple: true, required: false, refreshAfterSelection: true
-			if (contactOpens) {
-				input name: "openCloses", type: "bool", title: "Off when they re-close?", defaultValue: false
-			}
-			
-			paragraph ""
-			input name: "contactCloses", type: "capability.contactSensor", title: "On when any of these things close", multiple: true, required: false, refreshAfterSelection: true
-			if (contactCloses) {
-				input name: "closedOpens", type: "bool", title: "Off when they re-open?", defaultValue: false
-			}
-
-			paragraph ""
-			input name: "switchedOn", type: "capability.switch", title: "On when a switch is turned on", multiple: true, required: false, refreshAfterSelection: true
-			if (switchedOn) {
-				input name: "onSwitchedOff", type: "bool", title: "Off when turned off?", defaultValue: false
-			}
-
-			paragraph ""
+            
+            paragraph ""
 			input name: "useTimer", type: "bool", title: "On using a schedule?", defaultValue: false, refreshAfterSelection: true
 			if (useTimer) {
 				input name: "onEvery", type: "number", title: "On every XX minutes", defaultValue: 15, required: true
 			}
 			
+            paragraph ""
+			input name: "motionActive", type: "capability.motionSensor", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
+			if (settings.motionActivate && !settings.recircMomentary) {
+				input name: "motionInactive", type: "bool", title: "Off when motion stops?", defaultValue: true
+			}
+
 			paragraph ""
-			input name: "modeOn",  type: "mode", title: "Enable for specific mode(s)?", multiple: true, required: false
+			input name: "contactOpens", type: "capability.contactSensor", title: "On when any of these things open", multiple: true, required: false, refreshAfterSelection: true
+			if (settings.contactOpens && !settings.recircMomentary) {
+				input name: "openCloses", type: "bool", title: "Off when they re-close?", defaultValue: false
+			}
+			
+			paragraph ""
+			input name: "contactCloses", type: "capability.contactSensor", title: "On when any of these things close", multiple: true, required: false, refreshAfterSelection: true
+			if (settings.contactCloses && !settings.recircMomentary) {
+				input name: "closedOpens", type: "bool", title: "Off when they re-open?", defaultValue: false
+			}
+
+			paragraph ""
+			input name: "switchedOn", type: "capability.switch", title: "On when any switch is turned on", multiple: true, required: false, refreshAfterSelection: true
+			if (settings.switchedOn && !settings.recircMomentary) {
+				input name: "onSwitchedOff", type: "bool", title: "Off when turned off?", defaultValue: false
+			}
+			
+			paragraph ""
+			input name: "switchedOff", type: "capability.switch", title: "On when any switch is turned off", multiple: true, required: false, refreshAfterSelection: true
+			if (settings.switchedOff && !settings.recircMomentary) {
+				input name: "offSwitchedOn", type: "bool", title: "Off when turned on?", defaultValue: false
+			}
+			
+			paragraph ""
+			input name: "somethingMoved", type: "capability.accelerationSensor", title: "On when any of these things move", multiple: true, required: false, refreshAfterSelection: true
+			if (settings.somethingMoved && !settings.recircMomentary) {
+				input name: "stoppedMoving", type: "bool", title: "Off when they stop?",  defaultValue: false
+			}
+			
+			paragraph ""
+			input name: "modeOn",  type: "mode", title: "Enable only in specific mode(s)?", multiple: true, required: false
 		}
 		
 		section([mobileOnly:true]) {
@@ -123,9 +133,8 @@ def initialize() {
 	if (modeOn) {
     	subscribe( location, locationModeHandler)
         if (location.currentMode in modeOn) {
-        	state.keepOffNow == false 
-            
-            }
+        	state.keepOffNow == false
+        }
         else { state.keepOffNow = true }
 	}
     
@@ -150,8 +159,23 @@ def initialize() {
 		subscribe( switchedOn, "switch.on", onHandler)
 		if (onSwitchedOff) { subscribe( switchedOn, "switch.off", offHandler ) }
 	}
+	
+	if (switchedOff) {
+		subscribe( switchedOff, "switch.off", onHandler)
+		if (offSwitchedOn) { subscribe( switchedOff, "switch.on", onHandler ) }
+	}
+	
+	if (somethingMoved) {
+		subscribe( somethingMoved, "acceleration.active", onHandler)
+		if (stoppedMoving) { subscribe( somethingMoved, "acceleration.inactive", offHandler) }
+	}
 
-    if ( !state.keepOffNow && useTimer ) { schedule("0 */${onEvery} * * * ?", "turnItOn") }
+    if ( !state.keepOffNow) {
+    	if ( useTimer ) { 
+    		schedule("0 */${onEvery} * * * ?", "turnItOn")
+    	}
+    	turnItOn()
+	}
 }
 
 def tempHandler(evt) {
