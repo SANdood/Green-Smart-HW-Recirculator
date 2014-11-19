@@ -176,6 +176,9 @@ def initialize() {
     	}
     	turnItOn()
 	}
+	else {
+		turnItOff()
+	}
 }
 
 def tempHandler(evt) {
