@@ -39,7 +39,7 @@ def setupApp() {
 			if (!recircMomentary) {
 				input name: "timedOff", type: "bool", title: "Timed off?", defaultValue: false, required: true, refreshAfterSelection: true
 				if (timedOff) {
-					input name: "offAfterMinutes", type: "number", title: "On for how many minutes?", required: true, defaultValue: 3 
+					input name: "offAfterMinutes", type: "number", title: "On for how many minutes?", required: true, defaultValue: 1 
 				}
 			}		
 		}
@@ -90,7 +90,7 @@ def setupApp() {
 			
 			paragraph ""
 			input name: "switchedOff", type: "capability.switch", title: "On when any switch is turned off", multiple: true, required: false, refreshAfterSelection: true
-			if (settings.switchedOff && !settings.recircMomentary) {
+			if (settings.switchedOff && !settings.recircMopomentary) {
 				input name: "offSwitchedOn", type: "bool", title: "Off when turned on?", defaultValue: false
 			}
 			
@@ -99,7 +99,12 @@ def setupApp() {
 			if (settings.somethingMoved && !settings.recircMomentary) {
 				input name: "stoppedMoving", type: "bool", title: "Off when they stop?",  defaultValue: false
 			}
-			
+            
+            if (settings.recircMomentary || settings.timedOff) {			// we don't have an "off" condition for powerMeters
+            	paragraph ""
+            	input name: "powerChanged", type: "capability.powerMeter", title: "On when power changes on any of these", multiple: true, required: false, refreshAfterSelection: true
+			}
+            
 			paragraph ""
 			input name: "modeOn",  type: "mode", title: "Enable only in specific mode(s)?", multiple: true, required: false
 		}
@@ -169,6 +174,10 @@ def initialize() {
 		subscribe( somethingMoved, "acceleration.active", onHandler)
 		if (stoppedMoving) { subscribe( somethingMoved, "acceleration.inactive", offHandler) }
 	}
+    
+    if (powerChanged) {
+    	subscribe( powerChanged, "power", onHandler )
+    }
 
     if ( !state.keepOffNow) {
     	if ( useTimer ) { 
@@ -194,7 +203,7 @@ def tempHandler(evt) {
 }
 
 def onHandler(evt) {
-	log.debug "onHandler $evt.name: $evt.value"
+	log.debug "onHandler $evt.device.label $evt.name: $evt.value"
 
 	turnItOn()
 }
