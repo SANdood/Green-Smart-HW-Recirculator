@@ -133,14 +133,15 @@ def updated() {
 def initialize() {
 	log.debug "Initializing"
 
-	state.keepOffNow = false 
+	atomicState.keepOffNow = false 
+    atomicState.lastOnTime = 0
 
 	if (modeOn) {
     	subscribe( location, locationModeHandler)
         if (location.currentMode in modeOn) {
-        	state.keepOffNow == false
+        	atomicState.keepOffNow == false
         }
-        else { state.keepOffNow = true }
+        else { atomicState.keepOffNow = true }
 	}
     
 	if (useTargetTemp) { subscribe( targetThermometer, "temperature", tempHandler) }
@@ -210,9 +211,10 @@ def onHandler(evt) {
          
 def turnItOn() { 
     if (state.keepOffNow) { return }				// we're not supposed to turn it on right now
-
-	def turnOn = true
-    if (useTargetTemp) {							// only turn it on if not hot enough yet
+    
+    def turnOn = secondsPast( state.lastOnTime, 60 )  // limit sending On commands to 1 per minute max (reduces network loads)
+    
+    if (turnOn && useTargetTemp) {							// only turn it on if not hot enough yet
     	if (targetThermometer.currentTemperature >= targetTemperature) { turnOn = false }
     }
     
@@ -221,10 +223,12 @@ def turnItOn() {
 			if (recircSwitch.currentSwitch != "on") { recircSwitch.on() }
 		}
     	else { recircSwitch.on() }
+
+		atomicState.lastOnTime = new Date().time
     
     	if (timedOff) {
-        	unschedule( "turnItOff" )
-    		runIn(offAfterMinutes * 60, "turnItOff", [overwrite: false])
+//        	unschedule( "turnItOff" )
+    		runIn(offAfterMinutes * 60, "turnItOff", [overwrite: true])
         }
     }
 }
@@ -255,7 +259,7 @@ def locationModeHandler(evt) {
         if (evt.value in modeOn) {
         	log.debug "Enabling GSHWR"
         	sendNotificationEvent ( "Plus, I enabled ${recircSwitch.displayName}" )
-    		state.keepOffNow = false
+    		atomicState.keepOffNow = false
     		if (useTimer) {
     			unschedule( "turnItOn" )											// stop any lingering schedules
         		schedule("0 */${onEvery} * * * ?", "turnItOn")         // schedule onHandler every $onEvery minutes							// schedule onHandler every $onEvery minutes 
@@ -267,8 +271,22 @@ def locationModeHandler(evt) {
             sendNotificationEvent ( "Plus, I disabled ${recircSwitch.displayName}" )
         	if (useTimer) { unschedule( "turnItOn" ) }					// stop timed on schedules
     		if (timedOff) { unschedule( "turnItOff" ) }					// delete any pending off schedules
-   			state.keepOffNow = true										// make sure nobody turns it on again
+   			atomicState.keepOffNow = true										// make sure nobody turns it on again
 			turnItOff()													// Send one final turn-off  
 		}
     }
+}
+
+//check last message so thermostat poll doesn't happen all the time
+private Boolean secondsPast(timestamp, seconds) {
+	if (!(timestamp instanceof Number)) {
+		if (timestamp instanceof Date) {
+			timestamp = timestamp.time
+		} else if ((timestamp instanceof String) && timestamp.isNumber()) {
+			timestamp = timestamp.toLong()
+		} else {
+			return true
+		}
+	}
+	return (new Date().time - timestamp) > (seconds * 1000)
 }
