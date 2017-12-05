@@ -35,9 +35,9 @@ def setupApp() {
 
 		section("HW Recirculator") {
 			input name: "recircSwitch", type: "capability.switch", title: "Recirculator switch?", multiple: false, required: true
-			input name: "recircMomentary", type: "bool", title: "Is this a momentary switch?", required: true, defaultValue: true, refreshAfterSelection: true
+			input name: "recircMomentary", type: "bool", title: "Is this a momentary switch?", required: true, defaultValue: true, refreshAfterSelection: true, submitOnChange: true
 			if (!recircMomentary) {
-				input name: "timedOff", type: "bool", title: "Timed off?", defaultValue: false, required: true, refreshAfterSelection: true
+				input name: "timedOff", type: "bool", title: "Timed off?", defaultValue: false, required: true, refreshAfterSelection: true, submitOnChange: true
 				if (timedOff) {
 					input name: "offAfterMinutes", type: "number", title: "On for how many minutes?", required: true, defaultValue: 1 
 				}
@@ -46,12 +46,12 @@ def setupApp() {
 
 		section("Recirculator Activation events:") {
 
-			input name: "useTargetTemp", type: "bool", title: "On using target temperature?", required: true, defaultValue: false, refreshAfterSelection: true
+			input name: "useTargetTemp", type: "bool", title: "On using target temperature?", required: true, defaultValue: false, refreshAfterSelection: true, submitOnChange: true
 			if (useTargetTemp) {
 				input name: "targetThermometer", type: "capability.temperatureMeasurement", title: "Use this thermometer", multiple: false, required: true
 				input name: "targetTemperature", type: "number", title: "Target temperature", defaultValue: 105, required: true
 				input name: "targetOff", type: "bool", title: "Off at target temp?", defaultValue: true
-				input name: "targetOn", type: "bool", title: "On when below target?", defaultValue: false, refreshAfterSelection: true
+				input name: "targetOn", type: "bool", title: "On when below target?", defaultValue: false, refreshAfterSelection: true, submitOnChange: true
 				if (!targetOff && !targetOn) { settings.useTargetTemp = false }
 				if (targetOn) {
 					input name: "targetSwing", type: "number", title: "Below by this many degrees:", defaultValue: 5, required: true
@@ -59,50 +59,54 @@ def setupApp() {
 			}
             
             paragraph ""
-			input name: "useTimer", type: "bool", title: "On using a schedule?", defaultValue: false, refreshAfterSelection: true
+			input name: "useTimer", type: "bool", title: "On using a schedule?", defaultValue: false, refreshAfterSelection: true, submitOnChange: true
 			if (useTimer) {
 				input name: "onEvery", type: "number", title: "On every XX minutes", defaultValue: 15, required: true
 			}
 			
             paragraph ""
-			input name: "motionActive", type: "capability.motionSensor", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true
+			input name: "motionActive", type: "capability.motionSensor", title: "On when motion is detected here", multiple: true, required: false, refreshAfterSelection: true, submitOnChange: true
 			if (settings.motionActivate && !settings.recircMomentary) {
 				input name: "motionInactive", type: "bool", title: "Off when motion stops?", defaultValue: true
 			}
 
 			paragraph ""
-			input name: "contactOpens", type: "capability.contactSensor", title: "On when any of these things open", multiple: true, required: false, refreshAfterSelection: true
+			input name: "contactOpens", type: "capability.contactSensor", title: "On when any of these things open", multiple: true, required: false, refreshAfterSelection: true, submitOnChange: true
 			if (settings.contactOpens && !settings.recircMomentary) {
 				input name: "openCloses", type: "bool", title: "Off when they re-close?", defaultValue: false
 			}
 			
 			paragraph ""
-			input name: "contactCloses", type: "capability.contactSensor", title: "On when any of these things close", multiple: true, required: false, refreshAfterSelection: true
+			input name: "contactCloses", type: "capability.contactSensor", title: "On when any of these things close", multiple: true, required: false, refreshAfterSelection: true, submitOnChange: true
 			if (settings.contactCloses && !settings.recircMomentary) {
 				input name: "closedOpens", type: "bool", title: "Off when they re-open?", defaultValue: false
 			}
 
 			paragraph ""
-			input name: "switchedOn", type: "capability.switch", title: "On when any switch is turned on", multiple: true, required: false, refreshAfterSelection: true
+			input name: "switchedOn", type: "capability.switch", title: "On when any switch is turned on", multiple: true, required: false, refreshAfterSelection: true, submitOnChange: true
 			if (settings.switchedOn && !settings.recircMomentary) {
 				input name: "onSwitchedOff", type: "bool", title: "Off when turned off?", defaultValue: false
 			}
 			
 			paragraph ""
-			input name: "switchedOff", type: "capability.switch", title: "On when any switch is turned off", multiple: true, required: false, refreshAfterSelection: true
+			input name: "switchedOff", type: "capability.switch", title: "On when any switch is turned off", multiple: true, required: false, refreshAfterSelection: true, submitOnChange: true
 			if (settings.switchedOff && !settings.recircMopomentary) {
 				input name: "offSwitchedOn", type: "bool", title: "Off when turned on?", defaultValue: false
 			}
 			
 			paragraph ""
-			input name: "somethingMoved", type: "capability.accelerationSensor", title: "On when any of these things move", multiple: true, required: false, refreshAfterSelection: true
+			input name: "somethingMoved", type: "capability.accelerationSensor", title: "On when any of these things move", multiple: true, required: false, refreshAfterSelection: true, submitOnChange: true
 			if (settings.somethingMoved && !settings.recircMomentary) {
 				input name: "stoppedMoving", type: "bool", title: "Off when they stop?",  defaultValue: false
 			}
             
-            if (settings.recircMomentary || settings.timedOff) {			// we don't have an "off" condition for powerMeters
+            if ( true ) { // settings.recircMomentary || settings.timedOff) {			// we don't have an "off" condition for powerMeters
             	paragraph ""
-            	input name: "powerChanged", type: "capability.powerMeter", title: "On when power changes on any of these", multiple: true, required: false, refreshAfterSelection: true
+            	input name: "powerChanged", type: "capability.powerMeter", title: "On when power changes on any of these", multiple: true, required: false, refreshAfterSelection: true, submitOnChange: true
+                if (settings.powerChanged) {
+                	input name: "minPower", type: "decimal", title: "Minimum power level?", defaultValue: 0, required: false
+                    input name: "maxPower", type: "decimal", title: "Maximum power level?", defaultValue: 1000, required: false
+                }
 			}
             
 			paragraph ""
@@ -177,7 +181,11 @@ def initialize() {
 	}
     
     if (powerChanged) {
-    	subscribe( powerChanged, "power", onHandler )
+    	subscribe( powerChanged, "power", powerHandler )
+        if (settings.minPower > settings.maxPower) {
+        	settings.minPower = 0
+            settings.maxPower = 1000
+        }
     }
 
     if ( !state.keepOffNow) {
@@ -191,34 +199,56 @@ def initialize() {
 	}
 }
 
+def powerHandler(evt) {
+	log.trace "powerHandler ${evt.device?.label} ${evt.name}: ${evt.value}"
+    if (settings.minPower >= 0) {
+    	if (evt.floatValue > settings.minPower) {
+        	if (evt.floatValue <= settings.maxPower) { 
+        		turnItOn()
+            } else {
+//    			log.debug "Ignoring (greater than $settings.maxPower)"
+   	 		}
+        } else {
+//    		log.debug "Ignoring (less than $settings.minPower)"
+        }
+    } else {
+    	turnItOn()	// Negative min value overrides
+    }
+}
+
 def tempHandler(evt) {
-	log.debug "tempHandler $evt.name: $evt.value"
+	log.trace "tempHandler ${evt.device?.label} ${evt.name}: ${evt.value}"
     
     if (targetOff) {
-    	if (evt.integerValue >= targetTemperature) { offHandler() }
+    	if (evt.integerValue >= targetTemperature) { turnItOff() }
     }
     
     if (targetOn) {
-    	if ( evt.integerValue < targetTemperature) { onHandler() }
+    	if ( evt.integerValue < targetTemperature) { turnItOn() }
     }
 }
 
 def onHandler(evt) {
-	log.debug "onHandler $evt.device.label $evt.name: $evt.value"
+	log.trace "onHandler ${evt.device?.label} ${evt.name}: ${evt.value}"
 
 	turnItOn()
 }
          
 def turnItOn() { 
-    if (state.keepOffNow) { return }				// we're not supposed to turn it on right now
+    if (atomicState.keepOffNow) { return }				// we're not supposed to turn it on right now
     
-    def turnOn = secondsPast( state.lastOnTime, 60 )  // limit sending On commands to 1 per minute max (reduces network loads)
+    def turnOn = secondsPast( atomicState.lastOnTime, 60 )  // limit sending On commands to 1 per minute max (reduces network loads)
+    
+    if (turnOn && timedOff) {
+    	turnOn = secondsPast( offAfterMinutes * 60 )	// Wait longer if we are using timedOff
+    }
     
     if (turnOn && useTargetTemp) {							// only turn it on if not hot enough yet
     	if (targetThermometer.currentTemperature >= targetTemperature) { turnOn = false }
     }
     
     if (turnOn) {
+    	log.trace "Turning on"
 		if (!recircMomentary) {
 			if (recircSwitch.currentSwitch != "on") { recircSwitch.on() }
 		}
@@ -226,15 +256,18 @@ def turnItOn() {
 
 		atomicState.lastOnTime = new Date().time
     
-    	if (timedOff) {
-//        	unschedule( "turnItOff" )
-    		runIn(offAfterMinutes * 60, "turnItOff", [overwrite: true])
+    	if (!recircMomentary) {
+    		if (timedOff) {
+    			runIn(offAfterMinutes * 60, "turnItOff", [overwrite: true])
+        	} else {
+            	runIn(2, "turnItOff", [overwrite: true])
+            }
         }
     }
 }
 
 def offHandler(evt) {
-	log.debug "offHandler $evt.name: $evt.value"
+	log.trace "offHandler ${evt.device?.label} ${evt.name}: ${evt.value}"
 
     turnItOff()
 }
@@ -247,32 +280,36 @@ def turnItOff() {
     }
 
 	if (turnOff) {
-        if (timedOff) { unschedule( "turnItOff" ) }						// delete any other pending off schedules
+        if (!recircMomentary) { unschedule( "turnItOff" ) }				// delete any other pending off schedules
+        log.trace "Turning off"
 		if (recircSwitch.currentSwitch != "off" ) { recircSwitch.off() }// avoid superfluous off()s
     }
 }
 
 def locationModeHandler(evt) {
-	log.debug "locationModeHandler: $evt.name, $evt.value"
+	log.trace "locationModeHandler: ${evt.name}: ${evt.value}"
     
 	if (modeOn) {
         if (evt.value in modeOn) {
+        	atomicState.keepOffNow = false
+            atomicState.lastOnTime = 0
         	log.debug "Enabling GSHWR"
         	sendNotificationEvent ( "Plus, I enabled ${recircSwitch.displayName}" )
-    		atomicState.keepOffNow = false
+
     		if (useTimer) {
     			unschedule( "turnItOn" )											// stop any lingering schedules
-        		schedule("0 */${onEvery} * * * ?", "turnItOn")         // schedule onHandler every $onEvery minutes							// schedule onHandler every $onEvery minutes 
+        		schedule("0 */${onEvery} * * * ?", "turnItOn")        	// schedule onHandler every $onEvery minutes 
     		}
             turnItOn()													// and turn it on to start the day!
+            runIn( 63, "turnItOn", [overwrite: true])					// belt & suspenders - atomicState isn't always "atomic"
 		}
         else {
 			log.debug "Disabling GSHWR"
             sendNotificationEvent ( "Plus, I disabled ${recircSwitch.displayName}" )
         	if (useTimer) { unschedule( "turnItOn" ) }					// stop timed on schedules
-    		if (timedOff) { unschedule( "turnItOff" ) }					// delete any pending off schedules
-   			atomicState.keepOffNow = true										// make sure nobody turns it on again
-			turnItOff()													// Send one final turn-off  
+    		if (!recircMomentary) { unschedule( "turnItOff" ) }					// delete any pending off schedules
+			turnItOff()													// Send one final turn-off 
+            atomicState.keepOffNow = true								// make sure nobody turns it on again
 		}
     }
 }
