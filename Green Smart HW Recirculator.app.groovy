@@ -15,12 +15,19 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * CHANGE LOG
+ * **********
+ * 2018.03.06 -	Fixed timed off (argument missing in call to secondsPast())
+ *
  */
+def getVersionNum() { return "2018.03.06" }
+private def getVersionLabel() { return "Green Smart HW Recirculator, version ${getVersionNum()}" }
+ 
 definition(
 	name:		"Green Smart HW Recirculator",
 	namespace: 	"SANdood",
 	author: 	"Barry A. Burke",
-	description: "Intelligent event-driven optimizer for mhole house Hot Water recirculation system.",
+	description: "Intelligent event-driven optimizer for whole house Hot Water recirculation system.",
 	category: 	"Green Living",
 	iconUrl: 	"https://s3.amazonaws.com/smartapp-icons/GreenLiving/Cat-GreenLiving.png",
 	iconX2Url:	"https://s3.amazonaws.com/smartapp-icons/GreenLiving/Cat-GreenLiving@2x.png"
@@ -31,7 +38,7 @@ preferences {
 }
 
 def setupApp() {
-	dynamicPage(name: "setupApp", title: "Smart HW Recirulator Setup", install: true, uninstall: true) {
+	dynamicPage(name: "setupApp", title: versionLabel, install: true, uninstall: true) {
 
 		section("HW Recirculator") {
 			input name: "recircSwitch", type: "capability.switch", title: "Recirculator switch?", multiple: false, required: true
@@ -39,7 +46,7 @@ def setupApp() {
 			if (!recircMomentary) {
 				input name: "timedOff", type: "bool", title: "Timed off?", defaultValue: false, required: true, refreshAfterSelection: true, submitOnChange: true
 				if (timedOff) {
-					input name: "offAfterMinutes", type: "number", title: "On for how many minutes?", required: true, defaultValue: 1 
+					input name: "offAfterMinutes", type: "number", title: "On for how many minutes (1-60)?", required: true, defaultValue: 1, range: "1..60", multiple: false
 				}
 			}		
 		}
@@ -240,7 +247,7 @@ def turnItOn() {
     def turnOn = secondsPast( atomicState.lastOnTime, 60 )  // limit sending On commands to 1 per minute max (reduces network loads)
     
     if (turnOn && timedOff) {
-    	turnOn = secondsPast( offAfterMinutes * 60 )	// Wait longer if we are using timedOff
+    	turnOn = secondsPast( atomicState.lastOnTime, (offAfterMinutes * 60) )	// Wait longer if we are using timedOff
     }
     
     if (turnOn && useTargetTemp) {							// only turn it on if not hot enough yet
@@ -258,7 +265,7 @@ def turnItOn() {
     
     	if (!recircMomentary) {
     		if (timedOff) {
-    			runIn(offAfterMinutes * 60, "turnItOff", [overwrite: true])
+    			runIn((offAfterMinutes * 60), "turnItOff", [overwrite: true])
         	} else {
             	runIn(2, "turnItOff", [overwrite: true])
             }
@@ -315,7 +322,7 @@ def locationModeHandler(evt) {
 }
 
 //check last message so thermostat poll doesn't happen all the time
-private Boolean secondsPast(timestamp, seconds) {
+private Boolean secondsPast(timestamp, seconds=1) {
 	if (!(timestamp instanceof Number)) {
 		if (timestamp instanceof Date) {
 			timestamp = timestamp.time
