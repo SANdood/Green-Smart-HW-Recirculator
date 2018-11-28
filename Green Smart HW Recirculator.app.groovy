@@ -19,9 +19,10 @@
  * **********
  * 2018.03.06 -	Fixed timed off (argument missing in call to secondsPast())
  * 2018.11.28 - Added configurable "minimum time between turning on"
+ * 2018.11.28a- Fixed type conversion anomoly
  *
  */
-def getVersionNum() { return "2018.11.28" }
+def getVersionNum() { return "2018.11.28a" }
 private def getVersionLabel() { return "Green Smart Hot Water Recirculator, v${getVersionNum()}" }
  
 definition(
@@ -210,9 +211,9 @@ def initialize() {
 
 def powerHandler(evt) {
 	log.trace "powerHandler ${evt.device?.label} ${evt.name}: ${evt.value}"
-    if (settings.minPower >= 0) {
-    	if (evt.floatValue > settings.minPower) {
-        	if (evt.floatValue <= settings.maxPower) { 
+    if (settings.minPower && (settings.minpower >= 0)) {
+    	if (evt.value > settings.minPower) {
+        	if (evt.value <= settings.maxPower) { 
         		turnItOn()
             } else {
 //    			log.debug "Ignoring (greater than $settings.maxPower)"
@@ -245,10 +246,8 @@ def onHandler(evt) {
          
 def turnItOn() { 
     if (atomicState.keepOffNow) { return }				// we're not supposed to turn it on right now
-    
-    def minSeconds = settings.minTimeBetween ? (settings.minTimeBetween * 60) : 60
+    def minSeconds = minTimeBetween?.isNumber() ? (minTimeBetween.toInteger() * 60) : 60
     def turnOn = secondsPast( atomicState.lastOnTime, minSeconds )  // limit sending On commands to 1 per minute max (reduces network loads)
-    
     if (turnOn && timedOff) {
     	turnOn = secondsPast( atomicState.lastOnTime, (offAfterMinutes * 60) )	// Wait longer if we are using timedOff
     }
