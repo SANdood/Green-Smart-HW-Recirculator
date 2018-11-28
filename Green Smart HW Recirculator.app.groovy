@@ -18,10 +18,11 @@
  * CHANGE LOG
  * **********
  * 2018.03.06 -	Fixed timed off (argument missing in call to secondsPast())
+ * 2018.11.28 - Added configurable "minimum time between turning on"
  *
  */
-def getVersionNum() { return "2018.03.06" }
-private def getVersionLabel() { return "Green Smart HW Recirculator, version ${getVersionNum()}" }
+def getVersionNum() { return "2018.11.28" }
+private def getVersionLabel() { return "Green Smart Hot Water Recirculator, v${getVersionNum()}" }
  
 definition(
 	name:		"Green Smart HW Recirculator",
@@ -48,7 +49,8 @@ def setupApp() {
 				if (timedOff) {
 					input name: "offAfterMinutes", type: "number", title: "On for how many minutes (1-60)?", required: true, defaultValue: 1, range: "1..60", multiple: false
 				}
-			}		
+			}
+            input name: "minTimeBetween", type: "number", title: "Minimum minutes between activations (1-120)?", required: true, defaultValue: 1, range: "1..120", multiple: false
 		}
 
 		section("Recirculator Activation events:") {
@@ -244,7 +246,8 @@ def onHandler(evt) {
 def turnItOn() { 
     if (atomicState.keepOffNow) { return }				// we're not supposed to turn it on right now
     
-    def turnOn = secondsPast( atomicState.lastOnTime, 60 )  // limit sending On commands to 1 per minute max (reduces network loads)
+    def minSeconds = settings.minTimeBetween ? (settings.minTimeBetween * 60) : 60
+    def turnOn = secondsPast( atomicState.lastOnTime, minSeconds )  // limit sending On commands to 1 per minute max (reduces network loads)
     
     if (turnOn && timedOff) {
     	turnOn = secondsPast( atomicState.lastOnTime, (offAfterMinutes * 60) )	// Wait longer if we are using timedOff
@@ -255,7 +258,7 @@ def turnItOn() {
     }
     
     if (turnOn) {
-    	log.trace "Turning on"
+    	log.info "Turning on"
 		if (!recircMomentary) {
 			if (recircSwitch.currentSwitch != "on") { recircSwitch.on() }
 		}
@@ -270,6 +273,8 @@ def turnItOn() {
             	runIn(2, "turnItOff", [overwrite: true])
             }
         }
+    } else {
+    	log.info "Skipping..."
     }
 }
 
@@ -288,8 +293,10 @@ def turnItOff() {
 
 	if (turnOff) {
         if (!recircMomentary) { unschedule( "turnItOff" ) }				// delete any other pending off schedules
-        log.trace "Turning off"
-		if (recircSwitch.currentSwitch != "off" ) { recircSwitch.off() }// avoid superfluous off()s
+		if (recircSwitch.currentSwitch != "off" ) {
+        	log.info "Turning off"
+        	recircSwitch.off() // avoid superfluous off()s
+        }
     }
 }
 
