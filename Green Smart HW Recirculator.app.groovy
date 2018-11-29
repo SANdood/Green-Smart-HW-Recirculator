@@ -22,8 +22,9 @@
  * 2018.11.28a- Fixed type conversion anomoly
  *
  */
-def getVersionNum() { return "2018.11.28a" }
+def getVersionNum() { return "2018.11.29" }
 private def getVersionLabel() { return "Green Smart Hot Water Recirculator, v${getVersionNum()}" }
+def getDebug() { false }
  
 definition(
 	name:		"Green Smart HW Recirculator",
@@ -210,24 +211,42 @@ def initialize() {
 }
 
 def powerHandler(evt) {
-	log.trace "powerHandler ${evt.device?.label} ${evt.name}: ${evt.value}"
-    if (settings.minPower && (settings.minpower >= 0)) {
-    	if (evt.value > settings.minPower) {
-        	if (evt.value <= settings.maxPower) { 
-        		turnItOn()
+	log.trace "powerHandler() ${evt.device?.label} ${evt.name}: ${evt.value}"
+    
+    def newPower = 0.0
+    if (evt.value.isNumber()) {
+	    try {
+    		newPower = evt.numberValue
+    	} catch (e) {
+    		newPower = 0.0
+    	}
+    }
+    if (settings.minPower?.isNumber() && (settings.minPower >= 0.0)) {
+    	if (newPower > settings.minPower) {
+        	if (settings.maxPower?.isNumber() && (settings.maxPower > 0.0)) {
+            	if (newPower <= settings.maxPower) {
+                	if (debug) log.trace "${minPower} <= newPower <= ${maxPower}"
+        			turnItOn()
+            	} else {
+                	if (debug) log.trace "newPower > ${maxPower}, skipping..."
+                }
             } else {
-//    			log.debug "Ignoring (greater than $settings.maxPower)"
-   	 		}
+            	// No max power, just turn it on
+                if (debug) log.trace "${minPower} <= newPower"
+                turnItOn()
+            }
         } else {
-//    		log.debug "Ignoring (less than $settings.minPower)"
+        	if (debug) log.trace "newPower < ${minPower}, skipping..."
         }
     } else {
-    	turnItOn()	// Negative min value overrides
+    	// No power constraints, just turn it on
+        if (debug) log.trace "No power constraints"
+    	turnItOn()
     }
 }
 
 def tempHandler(evt) {
-	log.trace "tempHandler ${evt.device?.label} ${evt.name}: ${evt.value}"
+	log.trace "tempHandler() ${evt.device?.label} ${evt.name}: ${evt.value}"
     
     if (targetOff) {
     	if (evt.integerValue >= targetTemperature) { turnItOff() }
@@ -239,13 +258,14 @@ def tempHandler(evt) {
 }
 
 def onHandler(evt) {
-	log.trace "onHandler ${evt.device?.label} ${evt.name}: ${evt.value}"
+	log.trace "onHandler() ${evt.device?.label} ${evt.name}: ${evt.value}"
 
 	turnItOn()
 }
          
 def turnItOn() { 
     if (atomicState.keepOffNow) { return }				// we're not supposed to turn it on right now
+    
     def minSeconds = minTimeBetween?.isNumber() ? (minTimeBetween.toInteger() * 60) : 60
     def turnOn = secondsPast( atomicState.lastOnTime, minSeconds )  // limit sending On commands to 1 per minute max (reduces network loads)
     if (turnOn && timedOff) {
@@ -278,7 +298,7 @@ def turnItOn() {
 }
 
 def offHandler(evt) {
-	log.trace "offHandler ${evt.device?.label} ${evt.name}: ${evt.value}"
+	log.trace "offHandler() ${evt.device?.label} ${evt.name}: ${evt.value}"
 
     turnItOff()
 }
@@ -300,13 +320,13 @@ def turnItOff() {
 }
 
 def locationModeHandler(evt) {
-	log.trace "locationModeHandler: ${evt.name}: ${evt.value}"
+	log.trace "locationModeHandler() ${evt.name}: ${evt.value}"
     
 	if (modeOn) {
         if (evt.value in modeOn) {
         	atomicState.keepOffNow = false
             atomicState.lastOnTime = 0
-        	log.debug "Enabling GSHWR"
+        	log.trace "Enabling GSHWR"
         	sendNotificationEvent ( "Plus, I enabled ${recircSwitch.displayName}" )
 
     		if (useTimer) {
@@ -317,7 +337,7 @@ def locationModeHandler(evt) {
             runIn( 63, "turnItOn", [overwrite: true])					// belt & suspenders - atomicState isn't always "atomic"
 		}
         else {
-			log.debug "Disabling GSHWR"
+			log.trace "Disabling GSHWR"
             sendNotificationEvent ( "Plus, I disabled ${recircSwitch.displayName}" )
         	if (useTimer) { unschedule( "turnItOn" ) }					// stop timed on schedules
     		if (!recircMomentary) { unschedule( "turnItOff" ) }					// delete any pending off schedules
