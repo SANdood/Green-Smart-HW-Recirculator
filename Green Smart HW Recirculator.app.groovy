@@ -28,7 +28,7 @@ def getDebug() { false }
  
 definition(
 	name:		"Green Smart HW Recirculator",
-	namespace: 	"SANdood",
+	namespace: 	"sandood",
 	author: 	"Barry A. Burke",
 	description: "Intelligent event-driven optimizer for whole house Hot Water recirculation system.",
 	category: 	"Green Living",
